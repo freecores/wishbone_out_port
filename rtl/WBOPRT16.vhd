@@ -57,40 +57,55 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity WB_OPRT_08 is
+entity WB_OPRT_16 is
     port(
     -- WISHBONE SLAVE interface:
     ACK_O   : out   std_logic;
     CLK_I   : in    std_logic;
-    DAT_I   : in    std_logic_vector( 7 downto 0 );
-    DAT_O   : out   std_logic_vector( 7 downto 0 );
+    DAT_I   : in    std_logic_vector( 15 downto 0 );
+    DAT_O   : out   std_logic_vector( 15 downto 0 );
     RST_I   : in    std_logic;
+    SEL_I   : in    std_logic_vector( 1 downto 0 );
     STB_I   : in    std_logic;
     WE_I    : in    std_logic;
     -- Output port (non-WISHBONE signals):
-    PRT_O   : out   std_logic_vector( 7 downto 0 )
+    PRT_O   : out   std_logic_vector( 15 downto 0 )
     );
-end entity WB_OPRT_08;
+end entity WB_OPRT_16;
 
-
-architecture rtl of WB_OPRT_08 is
-    signal Q: std_logic_vector( 7 downto 0 );
+architecture rtl of WB_OPRT_16 is
+    signal QH: std_logic_vector( 7 downto 0 );
+    signal QL: std_logic_vector( 7 downto 0 );
 begin
 
 REG: process( CLK_I )
 begin
     if( rising_edge( CLK_I ) ) then
         if( RST_I = '1' ) then
-            Q <= ( others => '0');
-        elsif( (STB_I and WE_I) = '1' ) then
-            Q <= DAT_I( 7 downto 0 );
+            QH <= (others => '0');
+        elsif( (STB_I and WE_I and SEL_I(1)) = '1' ) then
+            QH <= DAT_I( 15 downto 8 );
         else
-            Q <= Q;
+            QH <= QH;
+        end if;
+     end if;
+
+     if( rising_edge( CLK_I ) ) then
+        if( RST_I = '1' ) then
+            QL <= (others => '0');
+        elsif( (STB_I and WE_I and SEL_I(0)) = '1' ) then
+            QL <= DAT_I( 7 downto 0 );
+        else
+            QL <= QL;
         end if;
     end if;
 end process REG;
 
+
     ACK_O <= STB_I;
-    DAT_O <= Q;
-    PRT_O <= Q;
+    DAT_O( 15 downto 8 ) <= QH;
+    DAT_O( 7 downto 0 ) <= QL;
+    PRT_O( 15 downto 8 ) <= QH;
+    PRT_O( 7 downto 0 ) <= QL;
+
 end architecture rtl;
